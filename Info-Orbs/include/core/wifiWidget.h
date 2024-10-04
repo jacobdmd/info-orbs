@@ -2,6 +2,7 @@
 #ifndef WIFIWIDGET_H
 #define WIFIWIDGET_H
 #include "widget.h"
+#include <ArduinoJson.h>
 
 class WifiWidget : public Widget{
 public:
@@ -11,6 +12,7 @@ public:
     void update(bool force = false) override;
     void draw(bool force = false) override;
     void changeMode() override;
+    void config(JsonDocument& doc);
 
     bool isConnected() { return m_isConnected; }
 
@@ -27,6 +29,8 @@ private:
     
     String m_connectionString{ "" };
     String m_dotsString{ "" };
+    String ssid;
+    String pass;
     int m_connectionTimer{ 0 };
     const int m_connectionTimeout{ 10000 };
 

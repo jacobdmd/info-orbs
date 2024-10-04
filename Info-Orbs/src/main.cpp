@@ -1,4 +1,5 @@
 #include "core/wifiWidget.h"
+#include "core/fileManager.h"
 #include "widgetSet.h"
 #include "screenManager.h"
 #include "widgets/clockWidget.h"
@@ -40,6 +41,55 @@ bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t *bitmap) 
 
 ScreenManager* sm;
 WidgetSet* widgetSet;
+FileManager* fm;
+JsonDocument localJson;
+
+bool createDefaultSettings()
+{
+  localJson["ssid"] = WIFI_SSID;
+  localJson["pass"] = WIFI_PASS;
+  localJson["TimeZoneLocation"] = TIMEZONE_API_LOCATION;
+  localJson["Format24h"] = FORMAT_24_HOUR;
+  localJson["ShowAMPMIndicator"] = SHOW_AM_PM_INDICATOR;
+  localJson["ShowSecondTicks"] = SHOW_SECOND_TICKS;
+  localJson["WeatherLocation"] = WEATHER_LOCAION;
+  localJson["StockTickerList"] = STOCK_TICKER_LIST;
+  localJson["InvertOrbs"] = INVERTED_ORBS;
+  return true;
+}
+
+bool readConfig()
+{
+  String file_content = fm->readFile("/config.json");
+  
+  if(file_content == "") // If the file is empty/doesn't exists, should create the file and load in defaults.
+  {
+    Serial.println("Config file doesn't exist or is empty. Creating...");
+    createDefaultSettings();
+    serializeJson(localJson, file_content);
+    Serial.println(file_content);
+    fm->writeFile("/config.json", file_content);
+    return true;
+  }
+
+  int config_file_size = file_content.length();
+
+  Serial.println("Config file size: " + String(config_file_size));
+  Serial.println(file_content);
+  if(config_file_size > 2048) {
+    Serial.println("Config file too large");
+    return false;
+  }
+  
+  DeserializationError error = deserializeJson(localJson, file_content);
+  if (error) { 
+    Serial.println("Error interpreting config file");
+    return false;
+  }
+  
+  return true;
+} 
+
 
 void setup() {
 
@@ -60,6 +110,14 @@ void setup() {
   TJpgDec.setSwapBytes(true); // jpeg rendering setup
   TJpgDec.setCallback(tft_output);
 
+  fm = new FileManager();
+  if(fm->mountFS())
+  {
+    Serial.println("Reading config.");
+    if(!readConfig())
+      Serial.println("Can not read config file.");
+  }
+
 #ifdef GC9A01_DRIVER
   Serial.println("GC9A01 Driver");
 #endif
@@ -74,6 +132,7 @@ void setup() {
   Serial.println("Connecting to: " + String(WIFI_SSID));
 
   wifiWidget = new WifiWidget(*sm);
+  wifiWidget->config(localJson);
   wifiWidget->setup();
 
   globalTime = GlobalTime::getInstance();
