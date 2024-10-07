@@ -2,8 +2,8 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
-
-#include "SPIFFS.h"
+#include <arduinoJson.h>
+#include "core/fileManager.h"
 #include "screenManager.h"
 
 class WifiManager {
@@ -11,12 +11,14 @@ class WifiManager {
     WifiManager(ScreenManager& manager);
 
     bool isConnected();
-    void setup();
+    void setup(JsonDocument& doc);
     void draw();
 
    private:
     AsyncWebServer m_server{80};
     ScreenManager& m_manager;
+    FileManager *fm;
+    JsonDocument localJson;
 
     IPAddress m_localIP;
     IPAddress m_localGateway;
@@ -36,19 +38,10 @@ class WifiManager {
 
     String m_dotsString{"."};
 
-    // File paths to save input values permanently
-    const char* m_ssidPath = "/ssid.txt";
-    const char* m_passPath = "/pass.txt";
-    const char* m_ipPath = "/ip.txt";
-    const char* m_gatewayPath = "/gateway.txt";
-
     unsigned long m_previousMillis = 0;
     const long m_interval = 10000;  // interval to wait for Wi-Fi connection (milliseconds)
 
-    void initSPIFFS();
     bool initWifi();
-    void writeFile(fs::FS& fs, const char* path, const char* message);
-    String readFile(fs::FS& fs, const char* path);
     void configureAccessPoint();
     void configureWebServer();
 };

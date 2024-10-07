@@ -6,15 +6,6 @@ WifiWidget::WifiWidget(ScreenManager &manager) : Widget(manager) {}
 
 WifiWidget::~WifiWidget() {}
 
-void WifiWidget::config(JsonDocument& doc)
-{
-  ssid = doc["ssid"].as<String>();
-  pass = doc["pass"].as<String>();
-
-  Serial.println(ssid);
-  Serial.println(pass);
-}
-
 void WifiWidget::setup() {
     TFT_eSPI &display = m_manager.getDisplay();
     m_manager.selectAllScreens();

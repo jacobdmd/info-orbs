@@ -4,7 +4,7 @@
 #include <globalTime.h>
 #include <widgets/stockWidget.h>
 
-#include "core/wifiManager/manager.h"
+#include "core/wifiManager/wifiManager.h"
 #include "core/wifiWidget.h"
 #include "core/fileManager.h"
 #include "widgetSet.h"
@@ -55,8 +55,8 @@ JsonDocument localJson;
 
 bool createDefaultSettings()
 {
-  localJson["ssid"] = WIFI_SSID;
-  localJson["pass"] = WIFI_PASS;
+  //localJson["ssid"] = WIFI_SSID;
+  //localJson["pass"] = WIFI_PASS;
   localJson["TimeZoneLocation"] = TIMEZONE_API_LOCATION;
   localJson["Format24h"] = FORMAT_24_HOUR;
   localJson["ShowAMPMIndicator"] = SHOW_AM_PM_INDICATOR;
@@ -140,11 +140,11 @@ void setup() {
     // Serial.println("Connecting to: " + String(WIFI_SSID));
 
     wifiWidget = new WifiWidget(*sm);
-    wifiWidget->config(localJson);
+    //wifiWidget->config(localJson);
     // wifiWidget->setup();
 
     wifiManager = new WifiManager(*sm);
-    wifiManager->setup();
+    wifiManager->setup(localJson);
 
     globalTime = GlobalTime::getInstance();
 

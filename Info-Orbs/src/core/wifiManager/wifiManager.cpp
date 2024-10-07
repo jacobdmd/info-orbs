@@ -1,54 +1,15 @@
 
-#include "manager.h"
+#include "wifiManager.h"
 
 #include <Arduino.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
 
-#include "SPIFFS.h"
+#include "core/filemanager.h"
 #include "screenManager.h"
 
 WifiManager::WifiManager(ScreenManager& m_manager) : m_manager(m_manager){};
-
-void WifiManager::initSPIFFS() {
-    if (!SPIFFS.begin(true)) {
-        Serial.println("An error has occurred while mounting SPIFFS");
-    }
-    Serial.println("SPIFFS mounted successfully");
-}
-
-String WifiManager::readFile(fs::FS& fs, const char* path) {
-    Serial.printf("Reading file: %s\r\n", path);
-
-    File file = fs.open(path);
-    if (!file || file.isDirectory()) {
-        Serial.println("- failed to open file for reading");
-        return String();
-    }
-
-    String fileContent;
-    while (file.available()) {
-        fileContent = file.readStringUntil('\n');
-        break;
-    }
-    return fileContent;
-}
-
-void WifiManager::writeFile(fs::FS& fs, const char* path, const char* message) {
-    Serial.printf("Writing file: %s\r\n", path);
-
-    File file = fs.open(path, FILE_WRITE);
-    if (!file) {
-        Serial.println("- failed to open file for writing");
-        return;
-    }
-    if (file.print(message)) {
-        Serial.println("- file written");
-    } else {
-        Serial.println("- write failed");
-    }
-}
 
 bool WifiManager::initWifi() {
     if (m_ssid == "" || m_ip == "") {
@@ -106,18 +67,18 @@ String processor(const String& var) {
 
 void WifiManager::configureWebServer() {
     m_server.on("/", HTTP_GET, [this](AsyncWebServerRequest* request) {
-        request->send(SPIFFS, "/index.html", "text/html", false, processor);
+        request->send(LittleFS, "/index.html", "text/html", false, processor);
     });
-    m_server.serveStatic("/", SPIFFS, "/");
+    m_server.serveStatic("/", LittleFS, "/");
 
     // Route to set GPIO state to HIGH
     m_server.on("/on", HTTP_GET, [this](AsyncWebServerRequest* request) {
-        request->send(SPIFFS, "/index.html", "text/html", false, processor);
+        request->send(LittleFS, "/index.html", "text/html", false, processor);
     });
 
     // Route to set GPIO state to LOW
     m_server.on("/off", HTTP_GET, [this](AsyncWebServerRequest* request) {
-        request->send(SPIFFS, "/index.html", "text/html", false, processor);
+        request->send(LittleFS, "/index.html", "text/html", false, processor);
     });
     m_server.begin();
 }
@@ -140,11 +101,11 @@ void WifiManager::configureAccessPoint() {
 
     // Web Server Root URL
     m_server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->send(SPIFFS, "/wifiManager.html", "text/html");
+        request->send(LittleFS, "/wifiManager.html", "text/html");
         Serial.println("Request in");
     });
 
-    m_server.serveStatic("/", SPIFFS, "/");
+    m_server.serveStatic("/", LittleFS, "/");
 
     m_server.on("/", HTTP_POST, [this](AsyncWebServerRequest* request) {
         int params = request->params();
@@ -153,20 +114,23 @@ void WifiManager::configureAccessPoint() {
             if (p->isPost()) {
                 if (p->name() == SSID_INPUT_NAME) {
                     m_ssid = p->value().c_str();
-                    writeFile(SPIFFS, m_ssidPath, m_ssid.c_str());
+                    localJson["ssid"] = m_ssid.c_str();
                 }
                 if (p->name() == PASS_INPUT_NAME) {
                     m_pass = p->value().c_str();
-                    writeFile(SPIFFS, m_passPath, m_pass.c_str());
+                    localJson["pass"] = m_pass.c_str();
                 }
                 if (p->name() == IP_INPUT_NAME) {
                     m_ip = p->value().c_str();
-                    writeFile(SPIFFS, m_ipPath, m_ip.c_str());
+                    localJson["ipPath"] = m_ip.c_str();
                 }
                 if (p->name() == GATEWAY_INPUT_NAME) {
                     m_gateway = p->value().c_str();
-                    writeFile(SPIFFS, m_gatewayPath, m_gateway.c_str());
+                    localJson["gateway"] = m_gateway.c_str();
                 }
+                String file_contents;
+                serializeJson(localJson, file_contents);
+                fm->writeFile("/config.json", file_contents);
             }
         }
         request->send(200, "text/plain", "Done. InfoOrbs will restart, connect to your router and go to IP address: " + m_ip);
@@ -176,8 +140,9 @@ void WifiManager::configureAccessPoint() {
     m_server.begin();
 }
 
-void WifiManager::setup() {
+void WifiManager::setup(JsonDocument& doc) {
     TFT_eSPI& display = m_manager.getDisplay();
+    localJson = doc;
     m_manager.selectAllScreens();
     display.fillScreen(TFT_BLACK);
     display.setTextSize(2);
@@ -189,14 +154,13 @@ void WifiManager::setup() {
     m_manager.selectScreen(1);
     display.drawCentreString("InfoOrbs", 120, 80, 1);
     display.drawCentreString("WiFi Manager", 120, 130, 1);
+    
 
-    this->initSPIFFS();
-
-    // Load values saved in SPIFFS
-    m_ssid = readFile(SPIFFS, m_ssidPath);
-    m_pass = readFile(SPIFFS, m_passPath);
-    m_ip = readFile(SPIFFS, m_ipPath);
-    m_gateway = readFile(SPIFFS, m_gatewayPath);
+    // Load values saved in local JSON
+    m_ssid = doc["ssid"].as<String>();
+    m_pass = doc["pass"].as<String>();
+    m_ip = doc["IP"].as<String>();
+    m_gateway = doc["gateway"].as<String>();
     Serial.println(m_ssid);
     Serial.println(m_pass);
     Serial.println(m_ip);
