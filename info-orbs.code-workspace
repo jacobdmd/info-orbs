@@ -1,9 +1,13 @@
 {
   "folders": [
-    {
-      "path": "."
-    }
-  ],
+	{
+		"path": "."
+	},
+	{
+		"name": "Info-Orbs",
+		"path": "../../helper/info-orbs/Info-Orbs"
+	}
+],
   "settings": {
     "[cpp]": {
       "editor.defaultFormatter": "ms-vscode.cpptools"
