@@ -139,7 +139,7 @@ void setup() {
     pinMode(BUSY_PIN, OUTPUT);
     // Serial.println("Connecting to: " + String(WIFI_SSID));
 
-    wifiWidget = new WifiWidget(*sm);
+    //wifiWidget = new WifiWidget(*sm);
     //wifiWidget->config(localJson);
     // wifiWidget->setup();
 

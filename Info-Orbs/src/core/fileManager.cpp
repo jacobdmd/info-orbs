@@ -45,7 +45,7 @@ bool FileManager::writeFile(String filename, String data)
 
 bool FileManager::mountFS()
 {
-  if(!LittleFS.begin(false))
+  if(!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED))
   {
     Serial.println("Failed to mount LittleFS.");
     return false;
